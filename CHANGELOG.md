@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Show the compiler command and English compilation progress, success and failure messages without changing compiler output or exit status.
+
 ## 1.0.0 — 2026-10-25
 
 - Initial public release of C(ompile), installing the `c` command.

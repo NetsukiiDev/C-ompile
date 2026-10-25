@@ -21,6 +21,7 @@ The project is named **C(ompile)**; its GitHub slug is `C-ompile`, and the insta
 - Accepts `-NoFlags` anywhere to disable only those automatic flags.
 - Preserves explicit compiler options, multiple source files and paths with spaces.
 - Clears the terminal before each invocation.
+- Prints the exact compiler command and English progress, success or failure messages.
 - Passes through compiler diagnostics and exit status without filtering.
 - Installs for one user without sudo or shell configuration changes.
 
@@ -101,6 +102,16 @@ c -NoFlags main.c                     # No automatic warning flags
 c main.c -NoFlags -o app               # Option can appear anywhere
 c -NoFlags -Wall main.c               # Keep a flag you explicitly supplied
 ```
+
+C(ompile) now shows what it is doing. For example:
+
+```text
+c: Starting compilation...
+c: Command: cc -Werror -Wextra -Wall main.c -o app
+c: Compilation succeeded.
+```
+
+If compilation fails, the compiler prints its usual errors and C(ompile) ends with a message such as `c: Compilation failed (exit code 1).` Status messages go to standard error so compiler output on standard output (including preprocessor output) stays unchanged. The command returns the compiler's original exit code.
 
 `-NoFlags` is case-sensitive and is consumed by the wrapper, never passed to the compiler. Repeating it is harmless. It removes only the wrapper's defaults: your own options are preserved, and the compiler may still report its own warnings and errors. Other arguments are passed as `"$@"` with their boundaries preserved.
 

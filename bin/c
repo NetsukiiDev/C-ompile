@@ -21,4 +21,18 @@ for arg in "$@"; do
     esac
 done
 
-exec "$compiler" "${flags[@]}" "${args[@]}"
+printf 'c: Starting compilation...\n' >&2
+printf 'c: Command:' >&2
+printf ' %q' "$compiler" "${flags[@]}" "${args[@]}" >&2
+printf '\n' >&2
+
+"$compiler" "${flags[@]}" "${args[@]}"
+status=$?
+
+if [ "$status" -eq 0 ]; then
+    printf 'c: Compilation succeeded.\n' >&2
+else
+    printf 'c: Compilation failed (exit code %d).\n' "$status" >&2
+fi
+
+exit "$status"

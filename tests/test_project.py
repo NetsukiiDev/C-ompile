@@ -58,19 +58,28 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(self.arguments(), FLAGS + [b'main.c'])
         self.assertEqual(self.trace.read_text(), 'clear\nrun\n')
         self.assertEqual(result.stdout, CLEAR + b'original stdout\n')
-        self.assertEqual(result.stderr, b'original stderr\n')
+        self.assertEqual(result.stderr,
+                         b'c: Starting compilation...\n'
+                         b'c: Command: cc -Werror -Wextra -Wall main.c\n'
+                         b'original stderr\n'
+                         b'c: Compilation succeeded.\n')
 
     def test_argument_boundaries(self):
         args = ['one.c', 'file with spaces.c', '-o', 'my app']
-        self.assertEqual(self.cli(*args).returncode, 0)
+        result = self.cli(*args)
+        self.assertEqual(result.returncode, 0)
         self.assertEqual(self.arguments(), FLAGS + [os.fsencode(a) for a in args])
+        self.assertIn(b'file\\ with\\ spaces.c', result.stderr)
+        self.assertIn(b'c: Compilation succeeded.', result.stderr)
 
     def test_no_flags_in_any_position(self):
         for args in [('-NoFlags', 'one.c', '-Wall'), ('one.c', '-NoFlags', '-Wall'),
                      ('one.c', '-Wall', '-NoFlags', '-NoFlags')]:
             with self.subTest(args=args):
-                self.assertEqual(self.cli(*args).returncode, 0)
+                result = self.cli(*args)
+                self.assertEqual(result.returncode, 0)
                 self.assertEqual(self.arguments(), [b'one.c', b'-Wall'])
+                self.assertIn(b'c: Command: cc one.c -Wall\n', result.stderr)
 
     def test_no_flags_is_case_sensitive(self):
         self.assertEqual(self.cli('-noflags').returncode, 0)
@@ -82,8 +91,15 @@ class ProjectTests(unittest.TestCase):
 
     def test_status_and_clear_failure(self):
         for status in [0, 1, 42, 127]:
-            self.assertEqual(self.cli(RUN_STATUS=str(status), CLEAR_STATUS='9').returncode,
-                             status)
+            result = self.cli(RUN_STATUS=str(status), CLEAR_STATUS='9')
+            self.assertEqual(result.returncode, status)
+            self.assertIn(b'original stdout\n', result.stdout)
+            if status == 0:
+                self.assertIn(b'c: Compilation succeeded.\n', result.stderr)
+            else:
+                self.assertIn(
+                    f'c: Compilation failed (exit code {status}).\n'.encode(),
+                    result.stderr)
 
     def test_prefer_cc_over_gcc(self):
         self.write_mock('gcc', 'printf "wrong compiler\\n" >&2\nexit 99\n')
@@ -92,8 +108,11 @@ class ProjectTests(unittest.TestCase):
     def test_fallback_to_gcc(self):
         (self.mock_bin / 'cc').unlink()
         self.write_mock('gcc', self.compiler_body)
-        self.assertEqual(self.cli('main.c').returncode, 0)
+        result = self.cli('main.c')
+        self.assertEqual(result.returncode, 0)
         self.assertEqual(self.arguments(), FLAGS + [b'main.c'])
+        self.assertIn(b'c: Command: gcc -Werror -Wextra -Wall main.c\n',
+                      result.stderr)
 
     def test_missing_compiler(self):
         (self.mock_bin / 'cc').unlink()
