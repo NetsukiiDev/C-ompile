@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+clear
+
+if command -v cc >/dev/null 2>&1; then
+    compiler=cc
+elif command -v gcc >/dev/null 2>&1; then
+    compiler=gcc
+else
+    printf 'c: neither cc nor gcc was found in PATH.\n' >&2
+    exit 127
+fi
+
+flags=(-Werror -Wextra -Wall)
+args=()
+
+for arg in "$@"; do
+    case "$arg" in
+        -NoFlags) flags=() ;;
+        *) args+=("$arg") ;;
+    esac
+done
+
+exec "$compiler" "${flags[@]}" "${args[@]}"
